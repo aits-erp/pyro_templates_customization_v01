@@ -1,0 +1,257 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-14 12:09:26.892050",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_0cbl",
+  "select_row",
+  "srl_no",
+  "te_tag_nos",
+  "tw_tag_nos",
+  "tt_tag_nos",
+  "range_in_deg_c",
+  "design_temp_deg_c",
+  "design_pressure_kgcm2",
+  "terminal_head",
+  "process_conn_size",
+  "sheath",
+  "route_length_rl_mm",
+  "lead_wire_length_in_mm",
+  "length_x_in_mm",
+  "immersion_length_e_mm",
+  "weld_pad_dimensions__moc",
+  "head_extension_length_n_mm",
+  "tw_matl",
+  "flange_matl",
+  "insertion_length_u_mm",
+  "well_extension_length_t_mm",
+  "total_thermowell_length_ut_mm",
+  "support_tube_length",
+  "expose_length",
+  "overall_length_olutn_mm",
+  "pipe_size",
+  "tw_root_end_od_b1_mm",
+  "tw_tip_end_od_b_mm",
+  "drg_ref",
+  "helical_length",
+  "options",
+  "deatil_model_number"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_0cbl",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "select_row",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Select"
+  },
+  {
+   "fieldname": "srl_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Srl No"
+  },
+  {
+   "fieldname": "te_tag_nos",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Te Tag Nos"
+  },
+  {
+   "fieldname": "tw_tag_nos",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Tw Tag Nos"
+  },
+  {
+   "fieldname": "tt_tag_nos",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Tt Tag Nos"
+  },
+  {
+   "fieldname": "range_in_deg_c",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Range In Deg C"
+  },
+  {
+   "fieldname": "design_temp_deg_c",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Design Temp Deg C"
+  },
+  {
+   "fieldname": "design_pressure_kgcm2",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Design Pressure Kgcm2"
+  },
+  {
+   "fieldname": "terminal_head",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Terminal Head"
+  },
+  {
+   "fieldname": "process_conn_size",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Process Conn Size"
+  },
+  {
+   "fieldname": "sheath",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Sheath"
+  },
+  {
+   "fieldname": "route_length_rl_mm",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Route Length Rl Mm"
+  },
+  {
+   "fieldname": "lead_wire_length_in_mm",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Lead Wire Length In Mm"
+  },
+  {
+   "fieldname": "length_x_in_mm",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Length X In Mm"
+  },
+  {
+   "fieldname": "immersion_length_e_mm",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Immersion Length E Mm"
+  },
+  {
+   "fieldname": "weld_pad_dimensions__moc",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Weld Pad Dimensions  Moc"
+  },
+  {
+   "fieldname": "head_extension_length_n_mm",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Head Extension Length N Mm"
+  },
+  {
+   "fieldname": "tw_matl",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Tw Matl"
+  },
+  {
+   "fieldname": "flange_matl",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Flange Matl"
+  },
+  {
+   "fieldname": "insertion_length_u_mm",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Insertion Length U Mm"
+  },
+  {
+   "fieldname": "well_extension_length_t_mm",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Well Extension Length T Mm"
+  },
+  {
+   "fieldname": "total_thermowell_length_ut_mm",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Total Thermowell Length Ut Mm"
+  },
+  {
+   "fieldname": "support_tube_length",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Support Tube Length"
+  },
+  {
+   "fieldname": "expose_length",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Expose Length"
+  },
+  {
+   "fieldname": "overall_length_olutn_mm",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Overall Length Olutn Mm"
+  },
+  {
+   "fieldname": "pipe_size",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Pipe Size"
+  },
+  {
+   "fieldname": "tw_root_end_od_b1_mm",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Tw Root End Od B1 Mm"
+  },
+  {
+   "fieldname": "tw_tip_end_od_b_mm",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Tw Tip End Od B Mm"
+  },
+  {
+   "fieldname": "drg_ref",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Drg Ref"
+  },
+  {
+   "fieldname": "helical_length",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Helical Length"
+  },
+  {
+   "fieldname": "options",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Options"
+  },
+  {
+   "fieldname": "deatil_model_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Deatil Model Number"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-14 12:14:28.446456",
+ "modified_by": "Administrator",
+ "module": "pyro",
+ "name": "Pyro Template Data",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,8 +1,8 @@
 app_name = "pyro"
-app_title = "pyro"
-app_publisher = "komal"
-app_description = "pyro"
-app_email = "k@gmail.com"
+app_title = "Pyro"
+app_publisher = "Your Name"
+app_description = "Custom app for Pyro"
+app_email = "you@example.com"
 app_license = "mit"
 
 # Apps
@@ -15,7 +15,7 @@ app_license = "mit"
 # 	{
 # 		"name": "pyro",
 # 		"logo": "/assets/pyro/logo.png",
-# 		"title": "pyro",
+# 		"title": "Pyro",
 # 		"route": "/pyro",
 # 		"has_permission": "pyro.api.permission.has_app_permission"
 # 	}
@@ -38,9 +38,6 @@ app_license = "mit"
 # include js, css files in header of web form
 # webform_include_js = {"doctype": "public/js/doctype.js"}
 # webform_include_css = {"doctype": "public/css/doctype.css"}
-
-# include js in page
-# page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
 # doctype_js = {"doctype" : "public/js/doctype.js"}
@@ -99,9 +96,7 @@ app_license = "mit"
 # before_app_install = "pyro.utils.before_app_install"
 # after_app_install = "pyro.utils.after_app_install"
 
-# Integration Cleanup
-# -------------------
-# To clean up dependencies/integrations with other apps
+# To set up dependencies/integrations with other apps
 # Name of the app being uninstalled is passed as an argument
 
 # before_app_uninstall = "pyro.utils.before_app_uninstall"
@@ -135,7 +130,7 @@ app_license = "mit"
 
 # Document Events
 # ---------------
-# Hook on document methods and events
+# Hook on Document Methods and Events
 
 # doc_events = {
 # 	"*": {
@@ -173,11 +168,11 @@ app_license = "mit"
 
 # Overriding Methods
 # ------------------------------
-#
+
 # override_whitelisted_methods = {
 # 	"frappe.desk.doctype.event.event.get_events": "pyro.event.get_events"
 # }
-#
+
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
 # along with any modifications made in other Frappe apps
@@ -192,7 +187,7 @@ app_license = "mit"
 # Ignore links to specified DocTypes when deleting documents
 # -----------------------------------------------------------
 
-# ignore_links_on_delete = ["Communication", "ToDo"]
+# ignore_links_on_delete = ["Task"]
 
 # Request Events
 # ----------------
@@ -205,7 +200,7 @@ app_license = "mit"
 # after_job = ["pyro.utils.after_job"]
 
 # User Data Protection
-# --------------------
+# ---------------------
 
 # user_data_fields = [
 # 	{
@@ -242,8 +237,51 @@ app_license = "mit"
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
 
-# Translation
-# ------------
-# List of apps whose translatable strings should be excluded from this app's translations.
-# ignore_translatable_strings_from = []
 
+# Fixtures
+# --------
+# Export Custom Field / Property Setter records scoped to Quotation Item
+# (child table used in the Quotation's "Items" grid)
+
+# fixtures = [
+#     {
+#         "dt": "Custom Field",
+#         "filters": [
+#             ["dt", "=", "Quotation Item"]
+#         ]
+#     },
+#     {
+#         "dt": "Property Setter",
+#         "filters": [
+#             ["doc_type", "=", "Quotation Item"]
+#         ]
+#     }
+# ]
+
+   
+      
+
+# fixtures = [
+#     {
+#         "dt": "Custom Field",
+#         "filters": [
+#             ["dt", "=", "Sales Order Item"]
+#         ]
+#     },
+
+# ]
+
+fixtures = [
+    {
+        "dt": "Custom Field",
+        "filters": [
+            ["module", "=", "pyro"]
+        ]
+    },
+]
+
+
+app_include_js = [
+    "/assets/pyro/js/pyro_bulk_edit.js",
+    "/assets/pyro/js/pyro_global.js",
+]
