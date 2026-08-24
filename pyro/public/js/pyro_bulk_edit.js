@@ -20,7 +20,8 @@ pyro.bulk_edit = {
                     });
                     includedCustom.forEach(f => {
                         if (!seen[f.fieldname]) {
-                            columns.push({ fieldname: f.fieldname, label: f.label, fieldtype: f.fieldtype });
+                            // columns.push({ fieldname: f.fieldname, label: f.label, fieldtype: f.fieldtype });
+                            columns.push({ fieldname: f.fieldname, label: f.label, fieldtype: f.field_type });
                             seen[f.fieldname] = true;
                         }
                     });

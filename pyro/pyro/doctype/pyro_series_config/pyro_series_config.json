@@ -7,7 +7,9 @@
  "field_order": [
   "template_name",
   "reference_doctype",
-  "fields_table"
+  "is_multipoint",
+  "fields_table",
+  "point_fields_table"
  ],
  "fields": [
   {
@@ -27,12 +29,24 @@
    "fieldtype": "Table",
    "label": "Fields",
    "options": "Pyro Field Selector"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_multipoint",
+   "fieldtype": "Check",
+   "label": "Is Multipoint"
+  },
+  {
+   "fieldname": "point_fields_table",
+   "fieldtype": "Table",
+   "label": "Point Fields Table",
+   "options": "Pyro Field Selector"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-14 10:22:32.879803",
+ "modified": "2026-08-19 16:31:08.019791",
  "modified_by": "Administrator",
  "module": "pyro",
  "name": "Pyro Series Config",

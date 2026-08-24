@@ -1,0 +1,110 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-19 16:43:44.847927",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "parent_doctype",
+  "parent_name",
+  "item_row",
+  "sl_no",
+  "point_no",
+  "tt_tag_number",
+  "te_tag_number",
+  "tw_tag_number",
+  "hot_junction_location_mm",
+  "head_extension_n_mm",
+  "lagging_extension_t_mm",
+  "overall_length_ol_mm"
+ ],
+ "fields": [
+  {
+   "fieldname": "parent_doctype",
+   "fieldtype": "Data",
+   "label": "Parent Doctype"
+  },
+  {
+   "fieldname": "parent_name",
+   "fieldtype": "Data",
+   "label": "Parent Name"
+  },
+  {
+   "fieldname": "item_row",
+   "fieldtype": "Data",
+   "label": "Item Row"
+  },
+  {
+   "fieldname": "sl_no",
+   "fieldtype": "Int",
+   "label": "Sl No"
+  },
+  {
+   "fieldname": "point_no",
+   "fieldtype": "Data",
+   "label": "Point No"
+  },
+  {
+   "fieldname": "tt_tag_number",
+   "fieldtype": "Data",
+   "label": "TT Tag Number"
+  },
+  {
+   "fieldname": "te_tag_number",
+   "fieldtype": "Data",
+   "label": "TE Tag Number"
+  },
+  {
+   "fieldname": "tw_tag_number",
+   "fieldtype": "Data",
+   "label": "TW Tag Number"
+  },
+  {
+   "fieldname": "hot_junction_location_mm",
+   "fieldtype": "Float",
+   "label": "Hot Junction Location mm"
+  },
+  {
+   "fieldname": "head_extension_n_mm",
+   "fieldtype": "Float",
+   "label": "Head Extension N mm"
+  },
+  {
+   "fieldname": "lagging_extension_t_mm",
+   "fieldtype": "Float",
+   "label": "Lagging Extension T mm"
+  },
+  {
+   "fieldname": "overall_length_ol_mm",
+   "fieldtype": "Float",
+   "label": "Overall Length OL mm"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-19 16:48:18.247499",
+ "modified_by": "Administrator",
+ "module": "pyro",
+ "name": "Pyro Multipoint Point",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

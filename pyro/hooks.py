@@ -284,4 +284,5 @@ fixtures = [
 app_include_js = [
     "/assets/pyro/js/pyro_bulk_edit.js",
     "/assets/pyro/js/pyro_global.js",
+    "/assets/pyro/js/pyro_multipoint_edit.js"
 ]
