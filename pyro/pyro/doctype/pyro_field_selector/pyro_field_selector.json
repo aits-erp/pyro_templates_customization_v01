@@ -15,22 +15,26 @@
   {
    "fieldname": "fieldname",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Fieldname"
   },
   {
    "fieldname": "label",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Label"
   },
   {
    "fieldname": "field_type",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Field Type"
   },
   {
    "default": "0",
    "fieldname": "include",
    "fieldtype": "Check",
+   "in_list_view": 1,
    "label": "Include"
   }
  ],
@@ -38,7 +42,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-08-14 10:17:00.046490",
+ "modified": "2026-08-25 10:31:01.908188",
  "modified_by": "Administrator",
  "module": "pyro",
  "name": "Pyro Field Selector",

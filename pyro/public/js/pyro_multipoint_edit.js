@@ -360,6 +360,7 @@
 //     }
 // };
 
+
 window.pyro = window.pyro || {};
 
 pyro.multipoint_edit = {
@@ -398,7 +399,6 @@ pyro.multipoint_edit = {
                                 : pointFields
                             ).map(c => ({ ...c, is_item: false }));
 
-                            // ONE combined column list: item columns first, then point columns
                             let allColumns = itemColumns.concat(pointColumns);
 
                             pyro.multipoint_edit._render(frm, itemColumns, pointColumns, allColumns, opts);
@@ -473,8 +473,45 @@ pyro.multipoint_edit = {
 
         function mergeRow(pointData, itemData) {
             let row = {};
-            allColumns.forEach(c => { row[c.fieldname] = c.is_item ? (itemData[c.fieldname] || "") : (pointData[c.fieldname] || ""); });
+            allColumns.forEach(c => {
+                let val = c.is_item ? (itemData[c.fieldname] || "") : (pointData[c.fieldname] || "");
+                if (c.fieldtype === "Date" && val) val = formatDateForDisplay(val);
+                row[c.fieldname] = val;
+            });
             return row;
+        }
+
+        // yyyy-mm-dd (from DB) -> dd-mm-yyyy (for display in the table)
+        function formatDateForDisplay(val) {
+            if (!val) return "";
+            let s = String(val);
+            let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+            return s;
+        }
+
+        // dd-mm-yyyy (typed/uploaded) -> yyyy-mm-dd (for saving to Frappe)
+        function formatDateForSave(val) {
+            if (!val) return "";
+            let s = String(val).trim();
+            let m = s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+            if (m) {
+                let dd = m[1].padStart(2, "0");
+                let mm = m[2].padStart(2, "0");
+                return `${m[3]}-${mm}-${dd}`;
+            }
+            // already yyyy-mm-dd or unrecognized — leave as-is
+            return s;
+        }
+
+        function coerceValue(fieldtype, val) {
+            if (val === undefined || val === null || val === "") return val;
+            if (fieldtype === "Date") return formatDateForSave(val);
+            if (fieldtype === "Float" || fieldtype === "Int") {
+                let n = Number(val);
+                return isNaN(n) ? val : n;
+            }
+            return val;
         }
 
         function makeCellInput(c, val) {
@@ -488,6 +525,10 @@ pyro.multipoint_edit = {
                     <datalist id="${listId}"></datalist>
                 `;
             }
+            if (c.fieldtype === "Date") {
+                return `<input type="text" placeholder="dd-mm-yyyy" class="form-control cell-input"
+                    data-fieldname="${c.fieldname}" value="${frappe.utils.escape_html(val)}">`;
+            }
             if (c.fieldtype === "Float" || c.fieldtype === "Int") {
                 return `<input type="number" step="any" class="form-control cell-input"
                     data-fieldname="${c.fieldname}" value="${frappe.utils.escape_html(val)}">`;
@@ -498,7 +539,7 @@ pyro.multipoint_edit = {
 
         function renderTable(data) {
             let headerCells = `<th style="min-width:40px;"><input type="checkbox" id="mp-select-all"></th>`;
-            allColumns.forEach(c => headerCells += `<th style="min-width:150px; white-space:nowrap;">${c.label}</th>`);
+            allColumns.forEach(c => headerCells += `<th style="min-width:150px; white-space:nowrap;">${c.label}${c.fieldtype === "Date" ? " (dd-mm-yyyy)" : ""}</th>`);
 
             let bodyRows = "";
             data.forEach((row) => {
@@ -650,7 +691,7 @@ pyro.multipoint_edit = {
                     aoa.push(allColumns.map(c => c.label));
                     aoa.push(allColumns.map(c => c.fieldname));
                     aoa.push([]);
-                    aoa.push(["Row 1: fill item columns + first point. Other rows: only point columns."]);
+                    aoa.push(["Row 1: fill item columns + first point. Other rows: only point columns. Dates: dd-mm-yyyy."]);
                     aoa.push(["Do not remove or reorder the fieldname row (row 3)."]);
                     aoa.push(["------"]);
 
@@ -676,9 +717,14 @@ pyro.multipoint_edit = {
         dialog.$wrapper.find(".modal-dialog").css("max-width", "95vw");
         dialog.show();
         loadItemRow(rowOptions[0]);
+
+        // expose for _save to use the same coercion
+        dialog._pyro_coerceValue = coerceValue;
     },
 
     _save: function (frm, dialog, itemColumns, pointColumns, allColumns, opts, anchor_field) {
+        let coerceValue = dialog._pyro_coerceValue || function (t, v) { return v; };
+
         let rows = [];
         dialog.fields_dict.table_html.$wrapper.find("tbody tr").each(function () {
             let row = {};
@@ -693,7 +739,6 @@ pyro.multipoint_edit = {
             return;
         }
 
-        // item fields always come from row 1
         let itemRow = rows[0];
         let selection = dialog.get_value("row_picker");
         let items = frm.doc[opts.child_fieldname] || [];
@@ -703,17 +748,18 @@ pyro.multipoint_edit = {
             let idx = parseInt(selection.split(" - ")[0]) - 1;
             row = items[idx];
         } else {
-            // don't blindly add a new row — reuse an existing empty row if one exists
             let emptyRow = items.find(r => !r[anchor_field]);
             row = emptyRow ? emptyRow : frm.add_child(opts.child_fieldname);
         }
 
-        itemColumns.forEach(c => { row[c.fieldname] = itemRow[c.fieldname]; });
+        itemColumns.forEach(c => {
+            row[c.fieldname] = coerceValue(c.fieldtype, itemRow[c.fieldname]);
+        });
+
         if (!row.delivery_date && frm.doc.delivery_date) {
             row.delivery_date = frm.doc.delivery_date;
         }
 
-        // stable UID that survives duplication/renaming — this is the real link to Pyro Multipoint Point
         if (!row.custom_pyro_row_uid) {
             row.custom_pyro_row_uid = frappe.utils.get_random(10);
         }
@@ -729,10 +775,19 @@ pyro.multipoint_edit = {
             let points = rows
                 .map(r => {
                     let p = {};
-                    pointColumns.forEach(c => { p[c.fieldname] = r[c.fieldname]; });
+                    pointColumns.forEach(c => { p[c.fieldname] = coerceValue(c.fieldtype, r[c.fieldname]); });
                     return p;
                 })
                 .filter(p => p.point_no);
+
+            if (rows.length && !points.length) {
+                frappe.msgprint({
+                    title: "No Points Saved",
+                    message: "None of the rows had a 'Point No' value filled in — nothing was saved. Fill the Point No column (e.g. U1, U2) for each row.",
+                    indicator: "orange"
+                });
+                return;
+            }
 
             frappe.call({
                 method: "pyro.api.save_multipoint_points",
