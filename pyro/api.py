@@ -61,11 +61,22 @@ def get_templates_for(reference_doctype):
 import json
 
 
+# MULTIPOINT_POINT_FIELDS = [
+#     {"fieldname": "point_no", "label": "Point No (e.g. U1)", "fieldtype": "Data"},
+#     {"fieldname": "tt_tag_number", "label": "TT Tag Number", "fieldtype": "Data"},
+#     {"fieldname": "te_tag_number", "label": "TE Tag Number", "fieldtype": "Data"},
+#     {"fieldname": "tw_tag_number", "label": "TW Tag Number", "fieldtype": "Data"},
+#     {"fieldname": "hot_junction_location_mm", "label": "Hot Junction Location mm", "fieldtype": "Float"},
+#     {"fieldname": "head_extension_n_mm", "label": "Head Extension N mm", "fieldtype": "Float"},
+#     {"fieldname": "lagging_extension_t_mm", "label": "Lagging Extension T mm", "fieldtype": "Float"},
+#     {"fieldname": "overall_length_ol_mm", "label": "Overall Length OL mm", "fieldtype": "Float"},
+# ]
 MULTIPOINT_POINT_FIELDS = [
-    {"fieldname": "point_no", "label": "Point No (e.g. U1)", "fieldtype": "Data"},
+    {"fieldname": "sl_no", "label": "Sl No", "fieldtype": "Int", "readonly": 1},
     {"fieldname": "tt_tag_number", "label": "TT Tag Number", "fieldtype": "Data"},
     {"fieldname": "te_tag_number", "label": "TE Tag Number", "fieldtype": "Data"},
     {"fieldname": "tw_tag_number", "label": "TW Tag Number", "fieldtype": "Data"},
+    {"fieldname": "point_no", "label": "Point No (e.g. U1)", "fieldtype": "Data"},
     {"fieldname": "hot_junction_location_mm", "label": "Hot Junction Location mm", "fieldtype": "Float"},
     {"fieldname": "head_extension_n_mm", "label": "Head Extension N mm", "fieldtype": "Float"},
     {"fieldname": "lagging_extension_t_mm", "label": "Lagging Extension T mm", "fieldtype": "Float"},
