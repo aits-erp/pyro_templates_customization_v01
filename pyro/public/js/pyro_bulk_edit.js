@@ -1119,15 +1119,11 @@ frm.refresh_field(
 // SAVE SALES ORDER
 // ====================================================
 
-frm.save()
+                                                frm.save()
         // YOUR EXISTING CODE CONTINUES HERE
 
                                                     .then(
                                                         function () {
-
-                                                            clearTimeout(
-                                                                safetyTimeout
-                                                            );
 
 
                                                             frappe.dom.unfreeze();
@@ -1139,7 +1135,7 @@ frm.save()
                                                             frappe.show_alert({
 
                                                                 message:
-                                                                    "Saved successfully",
+                                                                    "Sales Order saved successfully",
 
                                                                 indicator:
                                                                     "green"
@@ -1153,11 +1149,8 @@ frm.save()
                                                         function (
                                                             err
                                                         ) {
-
-                                                            clearTimeout(
-                                                                safetyTimeout
-                                                            );
-
+                                                            
+                                                    
 
                                                             frappe.dom.unfreeze();
 
