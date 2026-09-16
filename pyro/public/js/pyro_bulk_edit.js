@@ -2913,87 +2913,27 @@ renderTable(mappedRows);
         }
 
 
-        // ============================================================
-        // INITIAL TABLE
-        // ============================================================
-
-        // renderTable(
-
-        //     existingData.length
-        //         ? existingData
-        //         : [{}]
-
-        // );
-        // ====================================================
-// FINAL FILTER - ONLY REAL ITEM ROWS
-// ====================================================
-
-mappedRows = mappedRows.filter(function (row) {
-
-    let itemCode =
-        String(row.item_code || "").trim();
-
-    let itemName =
-        String(row.item_name || "").trim();
-
-    // ONLY rows having BOTH Item Code and Item Name
-    return (
-        itemCode !== "" &&
-        itemName !== ""
-    );
-
-});
-
-
-// ====================================================
-// DEBUG
-// ====================================================
-
-console.log(
-    "FINAL MAPPED ITEM ROWS:",
-    mappedRows
-);
-
-console.log(
-    "FINAL ITEM COUNT:",
-    mappedRows.length
-);
-
-
-// ====================================================
-// RENDER ONLY REAL ITEMS
-// ====================================================
+       
+// ============================================================
+// INITIAL TABLE
+// ============================================================
 
 renderTable(
-    mappedRows.length
-        ? mappedRows
+    existingData.length
+        ? existingData
         : [{}]
 );
 
-frappe.show_alert({
+dialog.$wrapper
+    .find(".modal-dialog")
+    .css(
+        "max-width",
+        "95vw"
+    );
 
-    message:
-        mappedRows.length +
-        " real item(s) loaded from Excel",
+dialog.show();
 
-    indicator:
-        "green"
-
-});
-
-
-        dialog.$wrapper
-            .find(
-                ".modal-dialog"
-            )
-            .css(
-                "max-width",
-                "95vw"
-            );
-
-
-        dialog.show();
-
+        
     }
 
 };
