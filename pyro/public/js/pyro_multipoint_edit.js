@@ -1092,68 +1092,68 @@ pyro.multipoint_edit = {
         // Model No / Client Model No are ignored.
         // =====================================================
 
-        if (
-            itemColumns.some(
-                c =>
-                    c.fieldname ===
-                    "item_code"
-            )
-        ) {
+        // if (
+        //     itemColumns.some(
+        //         c =>
+        //             c.fieldname ===
+        //             "item_code"
+        //     )
+        // ) {
 
-            let itemCodes =
-                rows
-                    .map(
-                        r =>
-                            String(
-                                r.item_code ||
-                                ""
-                            ).trim()
-                    )
-                    .filter(Boolean);
+        //     let itemCodes =
+        //         rows
+        //             .map(
+        //                 r =>
+        //                     String(
+        //                         r.item_code ||
+        //                         ""
+        //                     ).trim()
+        //             )
+        //             .filter(Boolean);
 
-            let duplicates =
-                itemCodes.filter(
-                    (
-                        code,
-                        index
-                    ) =>
-                        itemCodes.findIndex(
-                            x =>
-                                x.toLowerCase() ===
-                                code.toLowerCase()
-                        ) !== index
-                );
+        //     let duplicates =
+        //         itemCodes.filter(
+        //             (
+        //                 code,
+        //                 index
+        //             ) =>
+        //                 itemCodes.findIndex(
+        //                     x =>
+        //                         x.toLowerCase() ===
+        //                         code.toLowerCase()
+        //                 ) !== index
+        //         );
 
-            if (
-                duplicates.length
-            ) {
+        //     if (
+        //         duplicates.length
+        //     ) {
 
-                duplicates =
-                    [
-                        ...new Set(
-                            duplicates.map(
-                                x =>
-                                    x.toLowerCase()
-                            )
-                        )
-                    ].map(
-                        x =>
-                            itemCodes.find(
-                                y =>
-                                    y.toLowerCase() ===
-                                    x
-                            )
-                    );
+        //         duplicates =
+        //             [
+        //                 ...new Set(
+        //                     duplicates.map(
+        //                         x =>
+        //                             x.toLowerCase()
+        //                     )
+        //                 )
+        //             ].map(
+        //                 x =>
+        //                     itemCodes.find(
+        //                         y =>
+        //                             y.toLowerCase() ===
+        //                             x
+        //                     )
+        //             );
 
-                frappe.msgprint(
-                    "Duplicate Item Code found in Excel: " +
-                    duplicates.join(", ") +
-                    ". Each Item Code must be unique."
-                );
+        //         frappe.msgprint(
+        //             "Duplicate Item Code found in Excel: " +
+        //             duplicates.join(", ") +
+        //             ". Each Item Code must be unique."
+        //         );
 
-                return;
-            }
-        }
+        //         return;
+        //     }
+        // }
 
         // First Excel row contains Item information
         let itemRow =

@@ -369,84 +369,84 @@ pyro.bulk_edit = {
                         // Model No is NEVER used.
                         // ====================================================
 
-                        let itemCodes = {};
+                        // let itemCodes = {};
 
-                        let duplicateCodes = [];
-
-
-                        rows.forEach(function (r) {
-
-                            let code =
-                                r.item_code
-                                    ? String(
-                                        r.item_code
-                                    ).trim()
-                                    : "";
+                        // let duplicateCodes = [];
 
 
-                            if (!code) {
-                                return;
-                            }
+                        // rows.forEach(function (r) {
+
+                        //     let code =
+                        //         r.item_code
+                        //             ? String(
+                        //                 r.item_code
+                        //             ).trim()
+                        //             : "";
 
 
-                            let normalized =
-                                code.toLowerCase();
+                        //     if (!code) {
+                        //         return;
+                        //     }
 
 
-                            if (
-                                itemCodes[
-                                    normalized
-                                ]
-                            ) {
-
-                                if (
-                                    !duplicateCodes.includes(
-                                        code
-                                    )
-                                ) {
-
-                                    duplicateCodes.push(
-                                        code
-                                    );
-
-                                }
-
-                            }
-                            else {
-
-                                itemCodes[
-                                    normalized
-                                ] = true;
-
-                            }
-
-                        });
+                        //     let normalized =
+                        //         code.toLowerCase();
 
 
-                        if (
-                            duplicateCodes.length
-                        ) {
+                        //     if (
+                        //         itemCodes[
+                        //             normalized
+                        //         ]
+                        //     ) {
 
-                            frappe.msgprint({
+                        //         if (
+                        //             !duplicateCodes.includes(
+                        //                 code
+                        //             )
+                        //         ) {
 
-                                title:
-                                    "Duplicate Item Code",
+                        //             duplicateCodes.push(
+                        //                 code
+                        //             );
 
-                                message:
-                                    "Duplicate Item Code found in Excel:<br><br>" +
-                                    duplicateCodes.join(
-                                        "<br>"
-                                    ) +
-                                    "<br><br>Each Item Code must be unique.",
+                        //         }
 
-                                indicator:
-                                    "red"
+                        //     }
+                        //     else {
 
-                            });
+                        //         itemCodes[
+                        //             normalized
+                        //         ] = true;
 
-                            return;
+                        //     }
 
-                        }
+                        // });
+
+
+                        // if (
+                        //     duplicateCodes.length
+                        // ) {
+
+                        //     frappe.msgprint({
+
+                        //         title:
+                        //             "Duplicate Item Code",
+
+                        //         message:
+                        //             "Duplicate Item Code found in Excel:<br><br>" +
+                        //             duplicateCodes.join(
+                        //                 "<br>"
+                        //             ) +
+                        //             "<br><br>Each Item Code must be unique.",
+
+                        //         indicator:
+                        //             "red"
+
+                        //     });
+
+                        //     return;
+
+                        // }
 
 
                         // ====================================================
@@ -2199,16 +2199,63 @@ if (c.fieldtype === "Date") {
                                             ];
 
 
-                                        let aoa =
-                                            XLSX.utils.sheet_to_json(
-                                                sheet,
-                                                {
-                                                    header:
-                                                        1,
-                                                    defval:
-                                                        ""
-                                                }
-                                            );
+                                        // let aoa =
+                                        //     XLSX.utils.sheet_to_json(
+                                        //         sheet,
+                                        //         {
+                                        //             header:
+                                        //                 1,
+                                        //             defval:
+                                        //                 ""
+                                        //         }
+                                        //     );
+
+                                        // ============================================================
+// READ ONLY ACTUAL USED EXCEL ROWS
+// ============================================================
+
+let cellRefs = Object.keys(sheet).filter(function (key) {
+    return !key.startsWith("!");
+});
+
+let lastUsedRow = 0;
+
+cellRefs.forEach(function (ref) {
+    let cell = sheet[ref];
+
+    if (
+        cell &&
+        cell.v !== undefined &&
+        String(cell.v).trim() !== ""
+    ) {
+        let decoded = XLSX.utils.decode_cell(ref);
+
+        if (decoded.r > lastUsedRow) {
+            lastUsedRow = decoded.r;
+        }
+    }
+});
+
+if (lastUsedRow === 0) {
+    frappe.msgprint("Excel file does not contain any data.");
+    return;
+}
+
+let range = XLSX.utils.decode_range(
+    sheet["!ref"] || "A1"
+);
+
+// Restrict processing to actual used rows
+range.e.r = lastUsedRow;
+
+let aoa = XLSX.utils.sheet_to_json(sheet, {
+    header: 1,
+    defval: "",
+    range: range
+});
+
+console.log("Actual last Excel row:", lastUsedRow + 1);
+console.log("Rows processed:", aoa.length);
 
 
                                         // ====================================================
