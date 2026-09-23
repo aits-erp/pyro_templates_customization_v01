@@ -47,32 +47,6 @@ pyro.multipoint_edit = {
                                 }
                             });
 
-                            // -------------------------------------------------
-                            // ITEM MASTER FIELDS
-                            // These are used when creating a missing Item.
-                            // They are NOT mandatory.
-                            // -------------------------------------------------
-                            [
-                                {
-                                    fieldname: "item_group",
-                                    label: "Item Group",
-                                    fieldtype: "Link",
-                                    options: "Item Group",
-                                    is_item_master_only: true
-                                },
-                                {
-                                    fieldname: "gst_hsn_code",
-                                    label: "HSN/SAC",
-                                    fieldtype: "Data",
-                                    is_item_master_only: true
-                                }
-                            ].forEach(f => {
-                                if (!seen[f.fieldname]) {
-                                    itemColumns.push(f);
-                                    seen[f.fieldname] = true;
-                                }
-                            });
-
                             // Point fields
                             let includedPointFields =
                                 (templateDoc.point_fields_table || []).filter(f => f.include);
@@ -1092,69 +1066,6 @@ pyro.multipoint_edit = {
         // Model No / Client Model No are ignored.
         // =====================================================
 
-        // if (
-        //     itemColumns.some(
-        //         c =>
-        //             c.fieldname ===
-        //             "item_code"
-        //     )
-        // ) {
-
-        //     let itemCodes =
-        //         rows
-        //             .map(
-        //                 r =>
-        //                     String(
-        //                         r.item_code ||
-        //                         ""
-        //                     ).trim()
-        //             )
-        //             .filter(Boolean);
-
-        //     let duplicates =
-        //         itemCodes.filter(
-        //             (
-        //                 code,
-        //                 index
-        //             ) =>
-        //                 itemCodes.findIndex(
-        //                     x =>
-        //                         x.toLowerCase() ===
-        //                         code.toLowerCase()
-        //                 ) !== index
-        //         );
-
-        //     if (
-        //         duplicates.length
-        //     ) {
-
-        //         duplicates =
-        //             [
-        //                 ...new Set(
-        //                     duplicates.map(
-        //                         x =>
-        //                             x.toLowerCase()
-        //                     )
-        //                 )
-        //             ].map(
-        //                 x =>
-        //                     itemCodes.find(
-        //                         y =>
-        //                             y.toLowerCase() ===
-        //                             x
-        //                     )
-        //             );
-
-        //         frappe.msgprint(
-        //             "Duplicate Item Code found in Excel: " +
-        //             duplicates.join(", ") +
-        //             ". Each Item Code must be unique."
-        //         );
-
-        //         return;
-        //     }
-        // }
-
         // First Excel row contains Item information
         let itemRow =
             rows[0];
@@ -1205,16 +1116,9 @@ pyro.multipoint_edit = {
 
         // =====================================================
         // COPY ITEM FIELDS TO SALES ORDER
-        // Item Master-only fields are NOT copied to child table.
         // =====================================================
 
         itemColumns.forEach(c => {
-
-            if (
-                c.is_item_master_only
-            ) {
-                return;
-            }
 
             row[c.fieldname] =
                 coerceValue(
@@ -1255,40 +1159,14 @@ pyro.multipoint_edit = {
         frm.dirty();
 
         // =====================================================
-        // ENSURE ITEM EXISTS
-        //
-        // item_code = ONLY source of Item Code
-        //
-        // If Item exists -> reuse
-        // If Item does not exist -> create
-        //
-        // Item Master fields such as item_group and
-        // gst_hsn_code are passed to backend.
+        // SAVE SALES ORDER
         // =====================================================
 
         frappe.dom.freeze(
             "Saving item..."
         );
 
-        frappe.call({
-
-            method:
-                "pyro.api.ensure_pyro_items",
-
-            args: {
-
-                rows:
-                    JSON.stringify([
-                        itemRow
-                    ])
-            }
-
-        }).then(() => {
-
-            // Save Sales Order
-            return frm.save();
-
-        }).then(() => {
+        frm.save().then(() => {
 
             frappe.dom.unfreeze();
 
