@@ -7,6 +7,14 @@ pyro.bulk_edit = {
     // ============================================================
 
     open: function (frm, opts) {
+        if (!frm.doc.delivery_date) {
+            frappe.msgprint({
+                title: __("Delivery Date Required"),
+                message: __("Please select Sales Order Delivery Date before loading/uploading Pyro items."),
+                indicator: "red"
+            });
+            return;
+        }
 
         frappe.call({
 
@@ -177,6 +185,11 @@ pyro.bulk_edit = {
 
                     let row = frm.add_child(child_fieldname);
 
+                                        // Always force Delivery Date from Sales Order
+                    if (frappe.meta.has_field(opts.child_doctype, "delivery_date")) {
+                        row.delivery_date = frm.doc.delivery_date;
+                    }
+
                     columns.forEach(function (c) {
 
                         let value = r[c.fieldname];
@@ -195,32 +208,38 @@ pyro.bulk_edit = {
                         }
 
                         // Delivery Date
-                        if (c.fieldname === "delivery_date" && value) {
+                        // if (c.fieldname === "delivery_date" && value) {
 
-                            // Excel date serial number
-                            if (typeof value === "number") {
+                        //     // Excel date serial number
+                        //     if (typeof value === "number") {
 
-                                let excelDate = XLSX.SSF.parse_date_code(value);
+                        //         let excelDate = XLSX.SSF.parse_date_code(value);
 
-                                if (excelDate) {
-                                    let month = String(excelDate.m).padStart(2, "0");
-                                    let day = String(excelDate.d).padStart(2, "0");
-                                    value = `${excelDate.y}-${month}-${day}`;
-                                }
+                        //         if (excelDate) {
+                        //             let month = String(excelDate.m).padStart(2, "0");
+                        //             let day = String(excelDate.d).padStart(2, "0");
+                        //             value = `${excelDate.y}-${month}-${day}`;
+                        //         }
+                        //     }
+                        //     // DD-MM-YYYY
+                        //     else if (typeof value === "string" && /^\d{2}-\d{2}-\d{4}$/.test(value)) {
+                        //         let parts = value.split("-");
+                        //         value = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                        //     }
+                        //     // DD/MM/YYYY
+                        //     else if (typeof value === "string" && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+                        //         let parts = value.split("/");
+                        //         value = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                        //     }
+                        // }
+
+                        // row[c.fieldname] = value;
+
+                        if (c.fieldname === "delivery_date") {
+                            row[c.fieldname] = frm.doc.delivery_date;
+                        } else {
+                            row[c.fieldname] = value;
                             }
-                            // DD-MM-YYYY
-                            else if (typeof value === "string" && /^\d{2}-\d{2}-\d{4}$/.test(value)) {
-                                let parts = value.split("-");
-                                value = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                            }
-                            // DD/MM/YYYY
-                            else if (typeof value === "string" && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
-                                let parts = value.split("/");
-                                value = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                            }
-                        }
-
-                        row[c.fieldname] = value;
                     });
 
                     // Force item_code
@@ -434,7 +453,14 @@ pyro.bulk_edit = {
 
         function makeCellInput(c, val) {
 
-            val = val || "";
+             // Delivery Date always comes from Sales Order
+            if (c.fieldname === "delivery_date") {
+                val = frm.doc.delivery_date || "";
+            } else {
+                val = val || "";
+            }
+
+            // val = val || "";
 
             // --------------------------------------------------------
             // LINK
@@ -942,36 +968,47 @@ pyro.bulk_edit = {
                                             return;
                                         }
 
-                                        let value = rawRow[colIdx] !== undefined ? rawRow[colIdx] : "";
+                                        // let value = rawRow[colIdx] !== undefined ? rawRow[colIdx] : "";
 
-                                        if (fname === "delivery_date" && value) {
+                                        // if (fname === "delivery_date" && value) {
 
-                                            if (typeof value === "number") {
+                                        //     if (typeof value === "number") {
 
-                                                let parsed = XLSX.SSF.parse_date_code(value);
+                                        //         let parsed = XLSX.SSF.parse_date_code(value);
 
-                                                if (parsed) {
-                                                    value = `${parsed.y}-${String(parsed.m).padStart(2, "0")}-${String(parsed.d).padStart(2, "0")}`;
+                                        //         if (parsed) {
+                                        //             value = `${parsed.y}-${String(parsed.m).padStart(2, "0")}-${String(parsed.d).padStart(2, "0")}`;
+                                        //         }
+                                        //     }
+                                        //     else if (value instanceof Date && !isNaN(value)) {
+
+                                        //         value = `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+                                        //     }
+                                        //     else if (typeof value === "string" && /^\d{2}-\d{2}-\d{4}$/.test(value)) {
+
+                                        //         let parts = value.split("-");
+                                        //         value = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                                        //     }
+                                        //     else if (typeof value === "string" && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+
+                                        //         let parts = value.split("/");
+                                        //         value = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                                        //     }
+                                        // }
+
+                                        // row[fname] = value;
+
+                                        // Ignore delivery date from Excel
+                                                if (fname === "delivery_date") {
+                                                    return;
                                                 }
-                                            }
-                                            else if (value instanceof Date && !isNaN(value)) {
 
-                                                value = `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
-                                            }
-                                            else if (typeof value === "string" && /^\d{2}-\d{2}-\d{4}$/.test(value)) {
+                                                let value = rawRow[colIdx] !== undefined ? rawRow[colIdx] : "";
 
-                                                let parts = value.split("-");
-                                                value = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                                            }
-                                            else if (typeof value === "string" && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
-
-                                                let parts = value.split("/");
-                                                value = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                                            }
-                                        }
-
-                                        row[fname] = value;
+                                                row[fname] = value;
                                     });
+                                    // Always take Delivery Date from Sales Order
+                                    row.delivery_date = frm.doc.delivery_date;
 
                                     if (String(row.item_code || "").trim() && String(row.item_name || "").trim()) {
                                         mappedRows.push(row);

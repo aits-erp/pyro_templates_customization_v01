@@ -830,27 +830,54 @@ pyro.multipoint_edit = {
 
                                         let row = {};
 
-                                        fieldnameRow.forEach(
-                                            (
-                                                fname,
-                                                colIdx
-                                            ) => {
+                                    //     fieldnameRow.forEach(
+                                    //         (
+                                    //             fname,
+                                    //             colIdx
+                                    //         ) => {
 
-                                                if (fname) {
-                                                    row[fname] =
-                                                        rawRow[
-                                                            colIdx
-                                                        ] !== undefined
-                                                            ? rawRow[
-                                                                colIdx
-                                                            ]
-                                                            : "";
-                                                }
-                                            }
-                                        );
+                                    //             if (fname) {
+                                    //                 row[fname] =
+                                    //                     rawRow[
+                                    //                         colIdx
+                                    //                     ] !== undefined
+                                    //                         ? rawRow[
+                                    //                             colIdx
+                                    //                         ]
+                                    //                         : "";
+                                    //             }
+                                    //         }
+                                    //     );
 
-                                        mappedRows.push(row);
+                                    //     mappedRows.push(row);
+
+                                    fieldnameRow.forEach(
+                                    (
+                                        fname,
+                                        colIdx
+                                    ) => {
+
+                                        if (!fname) {
+                                            return;
+                                        }
+
+                                        // Ignore Delivery Date from Excel
+                                        if (fname === "delivery_date") {
+                                            return;
+                                        }
+
+                                        row[fname] =
+                                            rawRow[colIdx] !== undefined
+                                                ? rawRow[colIdx]
+                                                : "";
                                     }
+                                );
+
+                                // Always take Delivery Date from Sales Order
+                                row.delivery_date = frm.doc.delivery_date;
+
+                                mappedRows.push(row);
+                        }
 
                                     renderTable(
                                         mappedRows.length
@@ -885,6 +912,10 @@ pyro.multipoint_edit = {
                             let currentRows =
                                 getRowsFromTable();
 
+                            let exportColumns = allColumns.filter(function (c) {
+                                return c.fieldname !== "delivery_date";
+                                });
+
                             let aoa = [];
 
                             aoa.push([
@@ -893,13 +924,15 @@ pyro.multipoint_edit = {
                             ]);
 
                             aoa.push(
-                                allColumns.map(
+                                // allColumns.map(
+                                exportColumns.map(
+
                                     c => c.label
                                 )
                             );
 
                             aoa.push(
-                                allColumns.map(
+                                exportColumns.map(
                                     c => c.fieldname
                                 )
                             );
@@ -907,7 +940,8 @@ pyro.multipoint_edit = {
                             aoa.push([]);
 
                             aoa.push([
-                                "Row 1: fill item columns + first point. Other rows: only point columns. Dates: dd-mm-yyyy."
+                                // "Row 1: fill item columns + first point. Other rows: only point columns. Dates: dd-mm-yyyy."
+                                "Row 1: fill item columns + first point. Other rows: only point columns. Delivery Date is taken automatically from Sales Order."
                             ]);
 
                             aoa.push([
@@ -926,7 +960,9 @@ pyro.multipoint_edit = {
                                     r => {
 
                                         aoa.push(
-                                            allColumns.map(
+                                            // allColumns.map(
+                                            exportColumns.map(
+
                                                 c =>
                                                     r[
                                                         c.fieldname
@@ -940,7 +976,7 @@ pyro.multipoint_edit = {
                             } else {
 
                                 aoa.push(
-                                    allColumns.map(
+                                    exportColumns.map(
                                         () => ""
                                     )
                                 );
@@ -952,7 +988,7 @@ pyro.multipoint_edit = {
                                 );
 
                             ws["!cols"] =
-                                allColumns.map(
+                                exportColumns.map(
                                     () => ({
                                         wch: 18
                                     })
@@ -1119,6 +1155,10 @@ pyro.multipoint_edit = {
         // =====================================================
 
         itemColumns.forEach(c => {
+               if (c.fieldname === "delivery_date") {
+                row.delivery_date = frm.doc.delivery_date;
+                return;
+            }
 
             row[c.fieldname] =
                 coerceValue(
@@ -1129,13 +1169,22 @@ pyro.multipoint_edit = {
                 );
         });
 
-        if (
-            !row.delivery_date &&
-            frm.doc.delivery_date
-        ) {
+        // if (
+        //     !row.delivery_date &&
+        //     frm.doc.delivery_date
+        // ) {
 
-            row.delivery_date =
-                frm.doc.delivery_date;
+        //     row.delivery_date =
+        //         frm.doc.delivery_date;
+        // }
+
+        if (
+            frappe.meta.has_field(
+                opts.child_doctype,
+                "delivery_date"
+            )
+        ) {
+            row.delivery_date = frm.doc.delivery_date;
         }
 
         // Unique Pyro row UID
