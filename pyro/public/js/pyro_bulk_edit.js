@@ -101,6 +101,132 @@ pyro.bulk_edit = {
 
         let existingData = (frm.doc[child_fieldname] || []).map(r => ({ ...r }));
 
+        // ============================================================
+// DELIVERY DATE NORMALIZER
+// User display format: dd-mm-yyyy
+// ERPNext internal format: yyyy-mm-dd
+// ============================================================
+
+function normalizeDeliveryDate(value) {
+
+    if (
+        value === undefined ||
+        value === null ||
+        value === ""
+    ) {
+        return "";
+    }
+
+    function buildValidDate(year, month, day) {
+
+        year = parseInt(year, 10);
+        month = parseInt(month, 10);
+        day = parseInt(day, 10);
+
+        if (
+            isNaN(year) ||
+            isNaN(month) ||
+            isNaN(day)
+        ) {
+            return "";
+        }
+
+        let d = new Date(year, month - 1, day);
+
+        // Reject invalid date like 31-02-2026
+        if (
+            d.getFullYear() !== year ||
+            d.getMonth() !== month - 1 ||
+            d.getDate() !== day
+        ) {
+            return "";
+        }
+
+        return (
+            String(year).padStart(4, "0") +
+            "-" +
+            String(month).padStart(2, "0") +
+            "-" +
+            String(day).padStart(2, "0")
+        );
+    }
+
+    // Excel / JavaScript Date object
+    if (
+        value instanceof Date &&
+        !isNaN(value.getTime())
+    ) {
+
+        return buildValidDate(
+            value.getFullYear(),
+            value.getMonth() + 1,
+            value.getDate()
+        );
+    }
+
+    // Excel serial number
+    if (
+        typeof value === "number" &&
+        window.XLSX &&
+        XLSX.SSF
+    ) {
+
+        let parsed = XLSX.SSF.parse_date_code(value);
+
+        if (parsed) {
+
+            return buildValidDate(
+                parsed.y,
+                parsed.m,
+                parsed.d
+            );
+        }
+    }
+
+    let text = String(value).trim();
+
+    if (!text) {
+        return "";
+    }
+
+    let match;
+
+    // DD-MM-YYYY
+    // DD/MM/YYYY
+    // DD.MM.YYYY
+    // DD MM YYYY
+    match = text.match(
+        /^(\d{1,2})[-\/.\s](\d{1,2})[-\/.\s](\d{4})$/
+    );
+
+    if (match) {
+
+        return buildValidDate(
+            match[3],
+            match[2],
+            match[1]
+        );
+    }
+
+    // YYYY-MM-DD
+    // YYYY/MM/DD
+    // YYYY.MM.DD
+    match = text.match(
+        /^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/
+    );
+
+    if (match) {
+
+        return buildValidDate(
+            match[1],
+            match[2],
+            match[3]
+        );
+    }
+
+    return "";
+}
+
         let dialog = new frappe.ui.Dialog({
 
             title: frm.doc.doctype + " Items - " + opts.template_name,
@@ -118,270 +244,574 @@ pyro.bulk_edit = {
 
             primary_action: function () {
 
-                let rows = getRowsFromTable();
+    let rows = getRowsFromTable();
 
-                if (!anchor_field || !rows.some(r => r[anchor_field])) {
+    // ====================================================
+    // BASIC VALIDATION
+    // ====================================================
 
-                    frappe.msgprint(`Enter at least one row with a valid ${anchor_field || "key field"}`);
-                    return;
+    if (!anchor_field || !rows.some(r => r[anchor_field])) {
+
+        frappe.msgprint(
+            `Enter at least one row with a valid ${anchor_field || "key field"}`
+        );
+
+        return;
+    }
+
+
+    // ====================================================
+    // REMOVE EMPTY ROWS
+    // ====================================================
+
+    rows = rows.filter(function (r) {
+
+        return (
+            r[anchor_field] !== undefined &&
+            String(r[anchor_field] || "").trim() !== ""
+        );
+    });
+
+
+    if (!rows.length) {
+
+        frappe.msgprint(
+            "Please enter at least one Item Code."
+        );
+
+        return;
+    }
+
+
+    // ====================================================
+    // ITEM CODE REQUIRED
+    // ====================================================
+
+    let missingItemCode = rows.find(
+        r =>
+            !r.item_code ||
+            !String(r.item_code).trim()
+    );
+
+
+    if (missingItemCode) {
+
+        frappe.msgprint({
+
+            title: "Item Code Required",
+
+            message:
+                "Item Code is required for every row.",
+
+            indicator: "red"
+        });
+
+        return;
+    }
+
+
+    // ====================================================
+    // NORMALIZE ROW VALUES
+    // ====================================================
+
+    rows.forEach(function (r) {
+
+        if (r.item_code) {
+
+            r.item_code =
+                String(r.item_code).trim();
+        }
+
+        // Delivery date:
+        // item date first,
+        // Sales Order default second.
+        if (r.delivery_date) {
+
+            r.delivery_date =
+                normalizeDeliveryDate(
+                    r.delivery_date
+                );
+        }
+
+        if (!r.delivery_date) {
+
+            r.delivery_date =
+                frm.doc.delivery_date;
+        }
+    });
+
+
+    try {
+
+        // ====================================================
+        // BUILD SALES ORDER CHILD ROWS FIRST
+        // Do not freeze UI before this section.
+        // ====================================================
+
+        frm.clear_table(child_fieldname);
+
+
+        rows.forEach(function (r) {
+
+            if (
+                anchor_field &&
+                !r[anchor_field]
+            ) {
+                return;
+            }
+
+
+            let row =
+                frm.add_child(child_fieldname);
+
+
+            columns.forEach(function (c) {
+
+                let value =
+                    r[c.fieldname];
+
+
+                // ============================================
+                // NUMERIC FIELDS
+                // ============================================
+
+                if (
+                    c.fieldname === "qty" ||
+                    c.fieldname === "conversion_factor" ||
+                    c.fieldname === "amount"
+                ) {
+
+                    value =
+                        parseFloat(value);
+
+                    if (isNaN(value)) {
+
+                        value =
+                            c.fieldname ===
+                            "conversion_factor"
+                                ? 1
+                                : 0;
+                    }
                 }
 
-                // ====================================================
-                // REMOVE EMPTY ROWS
-                // ====================================================
 
-                rows = rows.filter(function (r) {
-                    return r[anchor_field] !== undefined &&
-                        String(r[anchor_field] || "").trim() !== "";
-                });
+                // ============================================
+                // DELIVERY DATE
+                // ============================================
 
-                if (!rows.length) {
-                    frappe.msgprint("Please enter at least one Item Code.");
-                    return;
+                if (
+                    c.fieldname ===
+                    "delivery_date"
+                ) {
+
+                    let normalizedDate =
+                        normalizeDeliveryDate(
+                            value
+                        );
+
+                    row[c.fieldname] =
+                        normalizedDate ||
+                        frm.doc.delivery_date;
+
+                } else {
+
+                    row[c.fieldname] =
+                        value;
                 }
+            });
 
-                // ====================================================
-                // CHECK ITEM CODE
-                // ====================================================
 
-                let missingItemCode = rows.find(
-                    r => !r.item_code || !String(r.item_code).trim()
+            // Always keep Item Code
+            row.item_code =
+                String(r.item_code).trim();
+
+
+            // Item Group
+            if (
+                frappe.meta.has_field(
+                    opts.child_doctype,
+                    "item_group"
+                )
+            ) {
+
+                row.item_group =
+                    r.item_group;
+            }
+
+
+            // HSN
+            if (
+                frappe.meta.has_field(
+                    opts.child_doctype,
+                    "gst_hsn_code"
+                )
+            ) {
+
+                row.gst_hsn_code =
+                    r.gst_hsn_code;
+            }
+
+        });
+
+
+        frm.refresh_field(
+            child_fieldname
+        );
+
+        frm.dirty();
+
+    } catch (err) {
+
+        console.error(
+            "Row processing error:",
+            err
+        );
+
+        frappe.msgprint({
+
+            title: "Item Processing Error",
+
+            message:
+                err.message ||
+                "Unable to process uploaded items.",
+
+            indicator: "red"
+        });
+
+        return;
+    }
+
+
+    // ====================================================
+    // NOW FREEZE
+    // Everything above already passed without JS error.
+    // ====================================================
+
+    frappe.dom.freeze(
+        "Saving Items..."
+    );
+
+
+    // ====================================================
+    // GET UNIQUE ITEM CODES
+    // ====================================================
+
+    let uniqueItemCodes =
+        [...new Set(
+            rows.map(
+                r => r.item_code
+            )
+        )];
+
+
+    // ====================================================
+    // ONE SERVER REQUEST INSTEAD OF
+    // ONE REQUEST FOR EVERY ROW
+    // ====================================================
+
+    frappe.call({
+
+        method:
+            "frappe.client.get_list",
+
+        args: {
+
+            doctype: "Item",
+
+            fields: [
+                "name",
+                "item_name",
+                "stock_uom",
+                "item_group",
+                "gst_hsn_code"
+            ],
+
+            filters: [
+                [
+                    "name",
+                    "in",
+                    uniqueItemCodes
+                ]
+            ],
+
+            limit_page_length:
+                Math.max(
+                    uniqueItemCodes.length,
+                    20
+                )
+        },
+
+        callback: function (response) {
+
+            try {
+
+                let itemList =
+                    response.message || [];
+
+
+                // ============================================
+                // CREATE ITEM LOOKUP MAP
+                // ============================================
+
+                let itemMap = {};
+
+                itemList.forEach(
+                    function (item) {
+
+                        itemMap[item.name] =
+                            item;
+                    }
                 );
 
-                if (missingItemCode) {
 
-                    frappe.msgprint({
-                        title: "Item Code Required",
-                        message: "Item Code is required for every row.",
-                        indicator: "red"
-                    });
+                let soItems =
+                    frm.doc[
+                        child_fieldname
+                    ] || [];
 
-                    return;
-                }
 
-                // ====================================================
-                // NORMALIZE VALUES
-                // ====================================================
+                // ============================================
+                // UPDATE EACH ROW BY INDEX
+                // IMPORTANT FOR DUPLICATE ITEM CODES
+                // ============================================
 
-                rows.forEach(function (r) {
-                    if (r.item_code) {
-                        r.item_code = String(r.item_code).trim();
-                    }
-                });
+                rows.forEach(
+                    function (r, index) {
 
-                // ====================================================
-                // UPDATE SALES ORDER TABLE
-                // ====================================================
+                        let soRow =
+                            soItems[index];
 
-                frappe.dom.freeze("Saving Items...");
+                        if (!soRow) {
+                            return;
+                        }
 
-                frm.clear_table(child_fieldname);
 
-                rows.forEach(function (r) {
+                        let data =
+                            itemMap[
+                                r.item_code
+                            ] || {};
 
-                    if (anchor_field && !r[anchor_field]) {
-                        return;
-                    }
 
-                    let row = frm.add_child(child_fieldname);
-
-                                        // Always force Delivery Date from Sales Order
-                    if (frappe.meta.has_field(opts.child_doctype, "delivery_date")) {
-                        row.delivery_date = frm.doc.delivery_date;
-                    }
-
-                    columns.forEach(function (c) {
-
-                        let value = r[c.fieldname];
-
-                        // Numeric fields
                         if (
-                            c.fieldname === "qty" ||
-                            c.fieldname === "conversion_factor" ||
-                            c.fieldname === "amount"
+                            data.item_name
                         ) {
-                            value = parseFloat(value);
 
-                            if (isNaN(value)) {
-                                value = c.fieldname === "conversion_factor" ? 1 : 0;
+                            soRow.item_name =
+                                data.item_name;
+                        }
+
+
+                        if (
+                            data.stock_uom
+                        ) {
+
+                            soRow.stock_uom =
+                                data.stock_uom;
+
+                            soRow.uom =
+                                data.stock_uom;
+                        }
+
+
+                        if (
+                            frappe.meta.has_field(
+                                opts.child_doctype,
+                                "item_group"
+                            ) &&
+                            data.item_group
+                        ) {
+
+                            soRow.item_group =
+                                data.item_group;
+                        }
+
+
+                        if (
+                            frappe.meta.has_field(
+                                opts.child_doctype,
+                                "gst_hsn_code"
+                            ) &&
+                            data.gst_hsn_code
+                        ) {
+
+                            soRow.gst_hsn_code =
+                                data.gst_hsn_code;
+                        }
+
+
+                        // ====================================
+                        // FINAL DELIVERY DATE SAFETY
+                        // ====================================
+
+                        if (
+                            !soRow.delivery_date
+                        ) {
+
+                            soRow.delivery_date =
+                                frm.doc.delivery_date;
+                        }
+                    }
+                );
+
+
+                // ============================================
+                // FORCE NUMERIC VALUES
+                // ============================================
+
+                soItems.forEach(
+                    function (item) {
+
+                        if (
+                            item.conversion_factor !==
+                            undefined
+                        ) {
+
+                            item.conversion_factor =
+                                parseFloat(
+                                    item.conversion_factor
+                                );
+
+                            if (
+                                isNaN(
+                                    item.conversion_factor
+                                ) ||
+                                item.conversion_factor <= 0
+                            ) {
+
+                                item.conversion_factor =
+                                    1;
                             }
                         }
 
-                        // Delivery Date
-                        // if (c.fieldname === "delivery_date" && value) {
 
-                        //     // Excel date serial number
-                        //     if (typeof value === "number") {
+                        if (
+                            item.qty !==
+                            undefined
+                        ) {
 
-                        //         let excelDate = XLSX.SSF.parse_date_code(value);
+                            item.qty =
+                                parseFloat(
+                                    item.qty
+                                ) || 0;
+                        }
 
-                        //         if (excelDate) {
-                        //             let month = String(excelDate.m).padStart(2, "0");
-                        //             let day = String(excelDate.d).padStart(2, "0");
-                        //             value = `${excelDate.y}-${month}-${day}`;
-                        //         }
-                        //     }
-                        //     // DD-MM-YYYY
-                        //     else if (typeof value === "string" && /^\d{2}-\d{2}-\d{4}$/.test(value)) {
-                        //         let parts = value.split("-");
-                        //         value = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                        //     }
-                        //     // DD/MM/YYYY
-                        //     else if (typeof value === "string" && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
-                        //         let parts = value.split("/");
-                        //         value = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                        //     }
-                        // }
 
-                        // row[c.fieldname] = value;
+                        if (
+                            item.amount !==
+                            undefined
+                        ) {
 
-                        if (c.fieldname === "delivery_date") {
-                            row[c.fieldname] = frm.doc.delivery_date;
-                        } else {
-                            row[c.fieldname] = value;
-                            }
-                    });
-
-                    // Force item_code
-                    row.item_code = String(r.item_code).trim();
-
-                    // Item Group - only if child table actually has this field
-                    if (frappe.meta.has_field(opts.child_doctype, "item_group")) {
-                        row.item_group = r.item_group;
+                            item.amount =
+                                parseFloat(
+                                    item.amount
+                                ) || 0;
+                        }
                     }
+                );
 
-                    // HSN/SAC - only if child table actually has this field
-                    if (frappe.meta.has_field(opts.child_doctype, "gst_hsn_code")) {
-                        row.gst_hsn_code = r.gst_hsn_code;
-                    }
-                });
 
-                frm.refresh_field(child_fieldname);
-                frm.dirty();
+                frm.refresh_field(
+                    child_fieldname
+                );
 
-                // ====================================================
-                // GET ITEM DETAILS (existing Items only - no creation)
-                // ====================================================
 
-                let itemPromises = rows.map(function (r) {
+                // ============================================
+                // SAVE SALES ORDER
+                // ============================================
 
-                    return frappe.db
-                        .get_value("Item", r.item_code, [
-                            "item_name",
-                            "stock_uom",
-                            "item_group",
-                            "gst_hsn_code"
-                        ])
-                        .then(function (response) {
-                            return {
-                                item_code: r.item_code,
-                                data: response.message || {}
-                            };
-                        });
-                });
+                frm.save()
 
-                Promise.all(itemPromises)
-                    .then(function (itemDataList) {
+                    .then(function () {
 
-                        let soItems = frm.doc[child_fieldname] || [];
+                        frappe.dom.unfreeze();
 
-                        itemDataList.forEach(function (itemInfo, index) {
+                        dialog.hide();
 
-                            let r = rows[index];
+                        frappe.show_alert({
 
-                            let soRow = soItems.find(child => child.item_code === r.item_code);
+                            message:
+                                "Sales Order saved successfully",
 
-                            if (!soRow) {
-                                return;
-                            }
-
-                            let data = itemInfo.data || {};
-
-                            if (data.item_name) {
-                                soRow.item_name = data.item_name;
-                            }
-
-                            if (data.stock_uom) {
-                                soRow.stock_uom = data.stock_uom;
-                                soRow.uom = data.stock_uom;
-                            }
-
-                            if (frappe.meta.has_field(opts.child_doctype, "item_group") && data.item_group) {
-                                soRow.item_group = data.item_group;
-                            }
-
-                            if (frappe.meta.has_field(opts.child_doctype, "gst_hsn_code") && data.gst_hsn_code) {
-                                soRow.gst_hsn_code = data.gst_hsn_code;
-                            }
+                            indicator:
+                                "green"
                         });
 
-                        frm.refresh_field(child_fieldname);
-
-                        // FORCE NUMERIC VALUES
-                        (frm.doc[child_fieldname] || []).forEach(function (item) {
-
-                            if (item.conversion_factor !== undefined) {
-                                item.conversion_factor = parseFloat(item.conversion_factor);
-
-                                if (isNaN(item.conversion_factor) || item.conversion_factor <= 0) {
-                                    item.conversion_factor = 1;
-                                }
-                            }
-
-                            if (item.qty !== undefined) {
-                                item.qty = parseFloat(item.qty) || 0;
-                            }
-
-                            if (item.amount !== undefined) {
-                                item.amount = parseFloat(item.amount) || 0;
-                            }
-                        });
-
-                        frm.refresh_field(child_fieldname);
-
-                        // ====================================================
-                        // SAVE SALES ORDER
-                        // ====================================================
-
-                        frm.save()
-                            .then(function () {
-
-                                frappe.dom.unfreeze();
-                                dialog.hide();
-
-                                frappe.show_alert({
-                                    message: "Sales Order saved successfully",
-                                    indicator: "green"
-                                });
-                            })
-                            .catch(function (err) {
-
-                                frappe.dom.unfreeze();
-
-                                console.error("Save error:", err);
-
-                                frappe.msgprint({
-                                    title: "Save Failed",
-                                    message: "Sales Order could not be saved.<br><br>" +
-                                        "Check the browser console and Error Log.",
-                                    indicator: "red"
-                                });
-                            });
                     })
+
                     .catch(function (err) {
 
                         frappe.dom.unfreeze();
 
-                        console.error("Item detail error:", err);
+                        console.error(
+                            "Save error:",
+                            err
+                        );
 
                         frappe.msgprint({
-                            title: "Item Error",
-                            message: "Unable to read Item Master details.",
-                            indicator: "red"
+
+                            title:
+                                "Save Failed",
+
+                            message:
+                                "Sales Order could not be saved.<br><br>" +
+                                (
+                                    err.message ||
+                                    "Check browser console and Error Log."
+                                ),
+
+                            indicator:
+                                "red"
                         });
                     });
+
+            } catch (err) {
+
+                frappe.dom.unfreeze();
+
+                console.error(
+                    "Item processing error:",
+                    err
+                );
+
+                frappe.msgprint({
+
+                    title:
+                        "Item Error",
+
+                    message:
+                        err.message ||
+                        "Unable to process Item Master details.",
+
+                    indicator:
+                        "red"
+                });
             }
-        });
+        },
+
+        error: function (err) {
+
+            frappe.dom.unfreeze();
+
+            console.error(
+                "Item fetch error:",
+                err
+            );
+
+            frappe.msgprint({
+
+                title:
+                    "Item Fetch Error",
+
+                message:
+                    "Unable to load Item Master details.",
+
+                indicator:
+                    "red"
+            });
+        }
+    });
+}
+ });
 
 
         // ============================================================
@@ -451,16 +881,25 @@ pyro.bulk_edit = {
         // CELL INPUT
         // ============================================================
 
-        function makeCellInput(c, val) {
+        // function makeCellInput(c, val) {
 
-             // Delivery Date always comes from Sales Order
+        //      // Delivery Date always comes from Sales Order
+        //     if (c.fieldname === "delivery_date") {
+        //         val = frm.doc.delivery_date || "";
+        //     } else {
+        //         val = val || "";
+        //     }
+        function makeCellInput(c, val) {
+            // Delivery Date:
+            // keep item-specific date if available,
+            // otherwise use Sales Order date as default
             if (c.fieldname === "delivery_date") {
-                val = frm.doc.delivery_date || "";
+                val = val || frm.doc.delivery_date || "";
             } else {
                 val = val || "";
             }
 
-            // val = val || "";
+            
 
             // --------------------------------------------------------
             // LINK
@@ -962,54 +1401,96 @@ pyro.bulk_edit = {
 
                                     let row = {};
 
+                                    // fieldnameRow.forEach(function (fname, colIdx) {
+
+                                    //     if (!fname) {
+                                    //         return;
+                                    //     }
+
+                                    //          let value = rawRow[colIdx] !== undefined
+                                    //             ? rawRow[colIdx]
+                                    //             : "";
+
+                                    //         // Optional item-specific Delivery Date from Excel
+                                    //         if (fname === "delivery_date" && value) {
+
+                                    //             // Excel serial date
+                                    //             if (typeof value === "number") {
+
+                                    //                 let parsed = XLSX.SSF.parse_date_code(value);
+
+                                    //                 if (parsed) {
+                                    //                     value =
+                                    //                         `${parsed.y}-${String(parsed.m).padStart(2, "0")}-${String(parsed.d).padStart(2, "0")}`;
+                                    //                 }
+                                    //             }
+
+                                    //             // JS Date object
+                                    //             else if (value instanceof Date && !isNaN(value)) {
+
+                                    //                 value =
+                                    //                     `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+                                    //             }
+
+                                    //             // DD-MM-YYYY
+                                    //             else if (
+                                    //                 typeof value === "string" &&
+                                    //                 /^\d{2}-\d{2}-\d{4}$/.test(value)
+                                    //             ) {
+
+                                    //                 let parts = value.split("-");
+                                    //                 value = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                                    //             }
+
+                                    //             // DD/MM/YYYY
+                                    //             else if (
+                                    //                 typeof value === "string" &&
+                                    //                 /^\d{2}\/\d{2}\/\d{4}$/.test(value)
+                                    //             ) {
+
+                                    //                 let parts = value.split("/");
+                                    //                 value = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                                    //             }
+                                    //         }
+
+                                    //         row[fname] = value;
+                                    //     });
+                                    // // If Excel/item date is blank, use Sales Order date
+                                    //     if (!row.delivery_date) {
+                                    //         row.delivery_date = frm.doc.delivery_date;
+                                    //     }
+
                                     fieldnameRow.forEach(function (fname, colIdx) {
 
                                         if (!fname) {
                                             return;
                                         }
 
-                                        // let value = rawRow[colIdx] !== undefined ? rawRow[colIdx] : "";
+                                        let value =
+                                            rawRow[colIdx] !== undefined
+                                                ? rawRow[colIdx]
+                                                : "";
 
-                                        // if (fname === "delivery_date" && value) {
+                                        // ====================================================
+                                        // DELIVERY DATE
+                                        // ====================================================
+                                        if (fname === "delivery_date") {
 
-                                        //     if (typeof value === "number") {
+                                            value = normalizeDeliveryDate(value);
+                                        }
 
-                                        //         let parsed = XLSX.SSF.parse_date_code(value);
-
-                                        //         if (parsed) {
-                                        //             value = `${parsed.y}-${String(parsed.m).padStart(2, "0")}-${String(parsed.d).padStart(2, "0")}`;
-                                        //         }
-                                        //     }
-                                        //     else if (value instanceof Date && !isNaN(value)) {
-
-                                        //         value = `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
-                                        //     }
-                                        //     else if (typeof value === "string" && /^\d{2}-\d{2}-\d{4}$/.test(value)) {
-
-                                        //         let parts = value.split("-");
-                                        //         value = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                                        //     }
-                                        //     else if (typeof value === "string" && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
-
-                                        //         let parts = value.split("/");
-                                        //         value = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                                        //     }
-                                        // }
-
-                                        // row[fname] = value;
-
-                                        // Ignore delivery date from Excel
-                                                if (fname === "delivery_date") {
-                                                    return;
-                                                }
-
-                                                let value = rawRow[colIdx] !== undefined ? rawRow[colIdx] : "";
-
-                                                row[fname] = value;
+                                        row[fname] = value;
                                     });
-                                    // Always take Delivery Date from Sales Order
-                                    row.delivery_date = frm.doc.delivery_date;
 
+
+                                    // ====================================================
+                                    // FALLBACK TO SALES ORDER DATE
+                                    // ====================================================
+                                    if (!row.delivery_date) {
+
+                                        row.delivery_date = frm.doc.delivery_date;
+                                    }
+                                    
                                     if (String(row.item_code || "").trim() && String(row.item_name || "").trim()) {
                                         mappedRows.push(row);
                                     }
