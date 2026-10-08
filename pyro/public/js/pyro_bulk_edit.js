@@ -89,11 +89,31 @@ pyro.bulk_edit = {
     // RENDER
     // ============================================================
 
+    // _render: function (frm, columns, opts) {
+
+    //     let child_fieldname = opts.child_fieldname;
+
+    //     let anchor_field = columns[0] ? columns[0].fieldname : null;
     _render: function (frm, columns, opts) {
 
-        let child_fieldname = opts.child_fieldname;
+    // ============================================================
+    // PRESERVE SALES ORDER HEADER DELIVERY DATE
+    // Capture it ONCE before any Excel/item processing
+    // ============================================================
 
-        let anchor_field = columns[0] ? columns[0].fieldname : null;
+    const originalSalesOrderDeliveryDate =
+        frm.doc.delivery_date;
+
+    console.log(
+        "Original Sales Order Delivery Date:",
+        originalSalesOrderDeliveryDate
+    );
+
+
+    let child_fieldname = opts.child_fieldname;
+
+    let anchor_field =
+        columns[0] ? columns[0].fieldname : null;
 
         let has_item_lookup = columns.some(
             c => c.fieldname === "item_code" && c.options === "Item"
@@ -107,12 +127,132 @@ pyro.bulk_edit = {
 // ERPNext internal format: yyyy-mm-dd
 // ============================================================
 
+// function normalizeDeliveryDate(value) {
+
+//     if (
+//         value === undefined ||
+//         value === null ||
+//         value === ""
+//     ) {
+//         return "";
+//     }
+
+//     function buildValidDate(year, month, day) {
+
+//         year = parseInt(year, 10);
+//         month = parseInt(month, 10);
+//         day = parseInt(day, 10);
+
+//         if (
+//             isNaN(year) ||
+//             isNaN(month) ||
+//             isNaN(day)
+//         ) {
+//             return "";
+//         }
+
+//         let d = new Date(year, month - 1, day);
+
+//         // Reject invalid date like 31-02-2026
+//         if (
+//             d.getFullYear() !== year ||
+//             d.getMonth() !== month - 1 ||
+//             d.getDate() !== day
+//         ) {
+//             return "";
+//         }
+
+//         return (
+//             String(year).padStart(4, "0") +
+//             "-" +
+//             String(month).padStart(2, "0") +
+//             "-" +
+//             String(day).padStart(2, "0")
+//         );
+//     }
+
+//     // Excel / JavaScript Date object
+//     if (
+//         value instanceof Date &&
+//         !isNaN(value.getTime())
+//     ) {
+
+//         return buildValidDate(
+//             value.getFullYear(),
+//             value.getMonth() + 1,
+//             value.getDate()
+//         );
+//     }
+
+//     // Excel serial number
+//     if (
+//         typeof value === "number" &&
+//         window.XLSX &&
+//         XLSX.SSF
+//     ) {
+
+//         let parsed = XLSX.SSF.parse_date_code(value);
+
+//         if (parsed) {
+
+//             return buildValidDate(
+//                 parsed.y,
+//                 parsed.m,
+//                 parsed.d
+//             );
+//         }
+//     }
+
+//     let text = String(value).trim();
+
+//     if (!text) {
+//         return "";
+//     }
+
+//     let match;
+
+//     // DD-MM-YYYY
+//     // DD/MM/YYYY
+//     // DD.MM.YYYY
+//     // DD MM YYYY
+//     match = text.match(
+//         /^(\d{1,2})[-\/.\s](\d{1,2})[-\/.\s](\d{4})$/
+//     );
+
+//     if (match) {
+
+//         return buildValidDate(
+//             match[3],
+//             match[2],
+//             match[1]
+//         );
+//     }
+
+//     // YYYY-MM-DD
+//     // YYYY/MM/DD
+//     // YYYY.MM.DD
+//     match = text.match(
+//         /^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/
+//     );
+
+//     if (match) {
+
+//         return buildValidDate(
+//             match[1],
+//             match[2],
+//             match[3]
+//         );
+//     }
+
+//     return "";
+// }
+
 function normalizeDeliveryDate(value) {
 
     if (
         value === undefined ||
         value === null ||
-        value === ""
+        String(value).trim() === ""
     ) {
         return "";
     }
@@ -131,9 +271,18 @@ function normalizeDeliveryDate(value) {
             return "";
         }
 
-        let d = new Date(year, month - 1, day);
+        // Month must be 1 to 12
+        if (month < 1 || month > 12) {
+            return "";
+        }
 
-        // Reject invalid date like 31-02-2026
+        let d = new Date(
+            year,
+            month - 1,
+            day
+        );
+
+        // Reject invalid dates like 31-02-2026
         if (
             d.getFullYear() !== year ||
             d.getMonth() !== month - 1 ||
@@ -151,68 +300,87 @@ function normalizeDeliveryDate(value) {
         );
     }
 
-    // Excel / JavaScript Date object
+
+    // If Excel already converted the value to a numeric date serial,
+    // do not guess DD/MM vs MM/DD.
+    if (typeof value === "number") {
+        return "__EXCEL_DATE_SERIAL__";
+    }
+
+
+    // If Excel / SheetJS gives a JavaScript Date object,
+    // do not guess the original typed format.
     if (
         value instanceof Date &&
         !isNaN(value.getTime())
     ) {
-
-        return buildValidDate(
-            value.getFullYear(),
-            value.getMonth() + 1,
-            value.getDate()
-        );
+        return "__EXCEL_DATE_SERIAL__";
     }
 
-    // Excel serial number
-    if (
-        typeof value === "number" &&
-        window.XLSX &&
-        XLSX.SSF
-    ) {
-
-        let parsed = XLSX.SSF.parse_date_code(value);
-
-        if (parsed) {
-
-            return buildValidDate(
-                parsed.y,
-                parsed.m,
-                parsed.d
-            );
-        }
-    }
 
     let text = String(value).trim();
 
-    if (!text) {
-        return "";
-    }
 
-    let match;
-
+    // ============================================================
+    // USER INPUT FORMAT
+    // Always interpret as:
+    //
     // DD-MM-YYYY
     // DD/MM/YYYY
     // DD.MM.YYYY
     // DD MM YYYY
-    match = text.match(
-        /^(\d{1,2})[-\/.\s](\d{1,2})[-\/.\s](\d{4})$/
+    // ============================================================
+
+    // let match = text.match(
+    //     /^(\d{1,2})[-\/.\s](\d{1,2})[-\/.\s](\d{4})$/
+    // );
+
+    // if (match) {
+
+    //     let day = match[1];
+    //     let month = match[2];
+    //     let year = match[3];
+
+    //     return buildValidDate(
+    //         year,
+    //         month,
+    //         day
+    //     );
+    // }
+
+    // DD-MM-YYYY
+// DD/MM/YYYY
+// DD.MM.YYYY
+// DD MM YYYY
+
+let parts = text.split(/[-\/.\s]+/);
+
+if (
+    parts.length === 3 &&
+    /^\d{1,2}$/.test(parts[0]) &&
+    /^\d{1,2}$/.test(parts[1]) &&
+    /^\d{4}$/.test(parts[2])
+) {
+
+    let day = parts[0];
+    let month = parts[1];
+    let year = parts[2];
+
+    return buildValidDate(
+        year,
+        month,
+        day
     );
+}
 
-    if (match) {
 
-        return buildValidDate(
-            match[3],
-            match[2],
-            match[1]
-        );
-    }
-
+    // ============================================================
+    // ERPNext internal format
     // YYYY-MM-DD
-    // YYYY/MM/DD
-    // YYYY.MM.DD
+    // ============================================================
+
     match = text.match(
-        /^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/
+        /^(\d{4})-(\d{1,2})-(\d{1,2})$/
     );
 
     if (match) {
@@ -224,7 +392,8 @@ function normalizeDeliveryDate(value) {
         );
     }
 
-    return "";
+
+    return "__INVALID_DATE__";
 }
 
         let dialog = new frappe.ui.Dialog({
@@ -245,7 +414,7 @@ function normalizeDeliveryDate(value) {
             primary_action: function () {
 
     let rows = getRowsFromTable();
-
+    // let originalSalesOrderDeliveryDate = frm.doc.delivery_date;
     // ====================================================
     // BASIC VALIDATION
     // ====================================================
@@ -327,17 +496,17 @@ function normalizeDeliveryDate(value) {
         // Sales Order default second.
         if (r.delivery_date) {
 
-            r.delivery_date =
-                normalizeDeliveryDate(
-                    r.delivery_date
-                );
-        }
+                r.delivery_date =
+                    normalizeDeliveryDate(
+                        r.delivery_date
+                    );
+            }
 
-        if (!r.delivery_date) {
+            if (!r.delivery_date) {
 
-            r.delivery_date =
-                frm.doc.delivery_date;
-        }
+                r.delivery_date =
+                    originalSalesOrderDeliveryDate;
+            }
     });
 
 
@@ -403,6 +572,13 @@ function normalizeDeliveryDate(value) {
                     c.fieldname ===
                     "delivery_date"
                 ) {
+            //                     console.log(
+            //     "EXCEL DELIVERY DATE:",
+            //     "Row:", i + 1,
+            //     "Raw:", value,
+            //     "Displayed:", displayedDate,
+            //     "Cell:", excelCell
+            // );
 
                     let normalizedDate =
                         normalizeDeliveryDate(
@@ -410,8 +586,8 @@ function normalizeDeliveryDate(value) {
                         );
 
                     row[c.fieldname] =
-                        normalizedDate ||
-                        frm.doc.delivery_date;
+                    normalizedDate ||
+                    originalSalesOrderDeliveryDate;
 
                 } else {
 
@@ -647,8 +823,7 @@ function normalizeDeliveryDate(value) {
                             !soRow.delivery_date
                         ) {
 
-                            soRow.delivery_date =
-                                frm.doc.delivery_date;
+                            soRow.delivery_date = originalSalesOrderDeliveryDate;
                         }
                     }
                 );
@@ -718,6 +893,41 @@ function normalizeDeliveryDate(value) {
                 // ============================================
                 // SAVE SALES ORDER
                 // ============================================
+                // frm.doc.delivery_date = originalSalesOrderDeliveryDate;
+                // frm.refresh_field("delivery_date");
+
+                // frm.save()
+                console.log(
+                    "BEFORE SAVE - Original SO Date:",
+                    originalSalesOrderDeliveryDate
+                );
+
+                console.log(
+                    "BEFORE SAVE - Current SO Date:",
+                    frm.doc.delivery_date
+                );
+
+                console.log(
+                    "BEFORE SAVE - First Item Date:",
+                    frm.doc.items &&
+                    frm.doc.items.length
+                        ? frm.doc.items[0].delivery_date
+                        : null
+                );
+
+
+                // Restore header
+                frm.doc.delivery_date =
+                    originalSalesOrderDeliveryDate;
+
+                frm.refresh_field("delivery_date");
+
+
+                console.log(
+                    "AFTER RESTORE - SO Date:",
+                    frm.doc.delivery_date
+                );
+
 
                 frm.save()
 
@@ -1276,7 +1486,7 @@ function normalizeDeliveryDate(value) {
 
                                 let wb = XLSX.read(evt.target.result, {
                                     type: "array",
-                                    cellDates: true
+                                    
                                 });
 
                                 let sheet = wb.Sheets[wb.SheetNames[0]];
@@ -1387,7 +1597,7 @@ function normalizeDeliveryDate(value) {
 
                                     return;
                                 }
-
+                                let invalidDeliveryDate = null;
                                 for (let i = dataStartIdx; i < aoa.length; i++) {
 
                                     let rawRow = aoa[i] || [];
@@ -1471,13 +1681,97 @@ function normalizeDeliveryDate(value) {
                                                 ? rawRow[colIdx]
                                                 : "";
 
-                                        // ====================================================
-                                        // DELIVERY DATE
-                                        // ====================================================
+                                        
                                         if (fname === "delivery_date") {
 
-                                            value = normalizeDeliveryDate(value);
-                                        }
+    let cellAddress = XLSX.utils.encode_cell({
+        r: range.s.r + i,
+        c: range.s.c + colIdx
+    });
+
+    let excelCell = sheet[cellAddress];
+
+    // First try exactly what Excel displays
+    let dateText = "";
+
+    if (excelCell && excelCell.w) {
+        dateText = String(excelCell.w).trim();
+    } else if (excelCell) {
+        dateText = String(
+            XLSX.utils.format_cell(excelCell) || ""
+        ).trim();
+    } else {
+        dateText = String(value || "").trim();
+    }
+
+    console.log(
+        "DELIVERY DATE CHECK =>",
+        "Row:", i + 1,
+        "Raw:", value,
+        "Text:", dateText,
+        "Cell:", excelCell
+    );
+
+    // Blank date is allowed
+    if (dateText !== "") {
+
+        // Always:
+        // first = DAY
+        // second = MONTH
+        // third = YEAR
+        let parts = dateText.split(/[-\/.\s]+/);
+
+        if (
+            parts.length !== 3 ||
+            !/^\d{1,2}$/.test(parts[0]) ||
+            !/^\d{1,2}$/.test(parts[1]) ||
+            // !/^\d{4}$/.test(parts[2])
+            !/^\d{2,4}$/.test(parts[2])
+        ) {
+            invalidDeliveryDate = {
+                row: i + 1,
+                value: dateText
+            };
+
+            return;
+        }
+
+        let day = parseInt(parts[0], 10);
+        let month = parseInt(parts[1], 10);
+        // let year = parseInt(parts[2], 10);
+        let year = parseInt(parts[2], 10);
+
+                if (year < 100) {
+                    year += 2000;
+                }
+
+        let testDate = new Date(
+            year,
+            month - 1,
+            day
+        );
+
+        if (
+            testDate.getFullYear() !== year ||
+            testDate.getMonth() !== month - 1 ||
+            testDate.getDate() !== day
+        ) {
+            invalidDeliveryDate = {
+                row: i + 1,
+                value: dateText
+            };
+
+            return;
+        }
+
+        value =
+            String(year).padStart(4, "0") +
+            "-" +
+            String(month).padStart(2, "0") +
+            "-" +
+            String(day).padStart(2, "0");
+    }
+}
 
                                         row[fname] = value;
                                     });
@@ -1486,17 +1780,44 @@ function normalizeDeliveryDate(value) {
                                     // ====================================================
                                     // FALLBACK TO SALES ORDER DATE
                                     // ====================================================
+                                    // if (!row.delivery_date) {
+
+                                    //     row.delivery_date = frm.doc.delivery_date;
+                                    // }
                                     if (!row.delivery_date) {
 
-                                        row.delivery_date = frm.doc.delivery_date;
+                                        row.delivery_date =
+                                            originalSalesOrderDeliveryDate;
                                     }
                                     
                                     if (String(row.item_code || "").trim() && String(row.item_name || "").trim()) {
                                         mappedRows.push(row);
                                     }
                                 }
+                                if (invalidDeliveryDate) {
 
-                                renderTable(mappedRows);
+                                frappe.msgprint({
+                                    title: "Invalid Delivery Date",
+                                    message:
+                                        "Invalid Delivery Date found in Excel row " +
+                                        invalidDeliveryDate.row +
+                                        ".<br><br>" +
+                                        "Please use Day-Month-Year format only.<br><br>" +
+                                        "Allowed formats:<br>" +
+                                        "<b>11-10-2026</b><br>" +
+                                        "<b>11/10/2026</b><br>" +
+                                        "<b>11.10.2026</b><br>" +
+                                        "<b>11 10 2026</b>",
+                                    indicator: "red"
+                                });
+
+                                e.target.value = "";
+                                return;
+                            }
+
+                            renderTable(mappedRows);
+
+                            // renderTable(mappedRows);
 
                                 frappe.show_alert({
                                     message: "Excel data loaded",
@@ -1548,6 +1869,48 @@ function normalizeDeliveryDate(value) {
                             }
 
                             let ws = XLSX.utils.aoa_to_sheet(aoa);
+                            let deliveryDateColIndex =
+    columns.findIndex(
+        c => c.fieldname === "delivery_date"
+    );
+
+if (deliveryDateColIndex !== -1) {
+
+    // Data starts from Excel row 9
+    // Make delivery_date cells Text format
+    for (let r = 8; r < 1000; r++) {
+
+        let cellAddress =
+            XLSX.utils.encode_cell({
+                r: r,
+                c: deliveryDateColIndex
+            });
+
+        if (!ws[cellAddress]) {
+            ws[cellAddress] = {
+                t: "s",
+                v: ""
+            };
+        }
+
+        ws[cellAddress].z = "@";
+    }
+
+    // Extend worksheet range so formatting is preserved
+    let sheetRange =
+        XLSX.utils.decode_range(ws["!ref"]);
+
+    sheetRange.e.r =
+        Math.max(
+            sheetRange.e.r,
+            999
+        );
+
+    ws["!ref"] =
+        XLSX.utils.encode_range(
+            sheetRange
+        );
+}
 
                             ws["!cols"] = columns.map(() => ({ wch: 20 }));
 

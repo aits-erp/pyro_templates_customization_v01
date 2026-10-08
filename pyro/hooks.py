@@ -280,9 +280,19 @@ fixtures = [
     },
 ]
 
+# doc_events = {
+#     "Sales Order": {
+#         "before_validate": "pyro.sales_order.validate_sales_order_item_numbers"
+#     }
+# }
+
 doc_events = {
     "Sales Order": {
-        "before_validate": "pyro.sales_order.validate_sales_order_item_numbers"
+        "before_validate": "pyro.sales_order.validate_sales_order_item_numbers",
+
+        # "before_save": "pyro.sales_order_delivery_date.preserve_sales_order_delivery_date",
+
+        # "before_submit": "pyro.sales_order_delivery_date.preserve_sales_order_delivery_date"
     }
 }
 
